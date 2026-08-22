@@ -30,7 +30,12 @@
             <groupId>io.legion</groupId>
             <artifactId>legion-contracts</artifactId>
         </dependency>
-        <!-- M0-3：Flyway 迁移 + JDBC 数据源（MyBatis XML 由 M0-4 CRUD 任务按需引入） -->
+        <!-- M0-5：daemon 以库形式内嵌启动（设计 §二），worker 对 server 的所有调用走 localhost HTTP -->
+        <dependency>
+            <groupId>io.legion</groupId>
+            <artifactId>legion-daemon</artifactId>
+        </dependency>
+        <!-- M0-3：Flyway 迁移 + JDBC 数据源 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>

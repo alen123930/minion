@@ -4,7 +4,11 @@
 #
 # 注意：test-classpath 上的 application.yml 会遮蔽 main application.yml，
 # 故 MyBatis 与 Jackson 契约设置必须在测试侧复刻，否则集成测试拿不到
-# mapper XML 与 snake_case 输出。
+# mapper XML 与 snake_case 输出。集成测试全部走 `it` profile（application-it.yml
+# 把 autoconfigure.exclude 覆盖为空），因此这里的排除项实际不生效。
+#
+# M0-5：内嵌 worker 默认关闭——各测试自建容器与任务，常驻轮询会抢跑；
+# EmbeddedDaemonStarterIntegrationTest 用 @TestPropertySource 单独开启。
 spring:
   application:
     name: legion-server
@@ -17,3 +21,8 @@ spring:
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
+
+legion:
+  daemon:
+    embedded:
+      enabled: false

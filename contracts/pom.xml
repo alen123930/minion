@@ -16,7 +16,12 @@
     <description>协议 DTO + 事件类型枚举 + reason code；server/daemon 共用，不依赖 Spring</description>
 
     <dependencies>
-        <!-- 协议层保持零框架依赖；测试只要 JUnit 5（版本随 Boot BOM） -->
+        <!-- 协议层保持零框架依赖；Jackson 只是 JSON 库（版本随 Boot BOM），
+             用于 DTO 里的 JsonNode 字段（context/result 对应 PG jsonb，设计 §4.8） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
