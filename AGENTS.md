@@ -10,6 +10,7 @@ Multica 复刻：AI 原生任务管理平台，agent 是一等公民受理人。
 
 - `docs/Multica复刻-任务拆解与里程碑方案.md` —— 做什么、什么顺序、多少工作量（M0-M4）
 - `docs/design/` —— 详细设计，按章节拆分（README.md 为索引，01-12 对应 §一-§十二；"详细设计 §N"即文件 `NN-*.md`）
+- `docs/reference/` —— 原项目机制深读笔记（prompt 设计哲学等；设计决策的"为什么"出处，含 MUL 票据号）
 
 注意：参照仓库的 git log 是 squash 快照，不是开发历史；任何时间线论断以其 i18n changelog 为准。
 
