@@ -1,0 +1,10 @@
+# M0-3：集成测试直连 Testcontainers（Flyway API + JdbcTemplate），不经 Spring 上下文；
+# 上下文接库（@ServiceConnection）留给 M0-4 CRUD 任务。此处排除自动配置，
+# 否则 classpath 上的 jdbc/flyway starter 会让 contextLoads 在无 DB 时失败。
+spring:
+  application:
+    name: legion-server
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration

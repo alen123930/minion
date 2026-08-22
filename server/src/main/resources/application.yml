@@ -1,3 +1,11 @@
 spring:
   application:
     name: legion-server
+  datasource:
+    # 与 docker-compose.yml 默认凭据一致（可用标准 SPRING_DATASOURCE_* 环境变量覆盖）；
+    # compose 仅绑定 127.0.0.1，开发库不得经局域网 IP 直连（NIMI-5）。
+    url: jdbc:postgresql://127.0.0.1:5432/legion
+    username: legion
+    password: legion
+  flyway:
+    locations: classpath:db/migration
