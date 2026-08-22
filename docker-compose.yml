@@ -1,0 +1,23 @@
+# 开发环境 PostgreSQL 17（docs/design/03-数据库设计.md）。
+# M0 六表由 Flyway 迁移建表，这里不挂载 init 脚本——schema 只能有一个来源，
+# 否则 compose init 与 Flyway 两套建表路径迟早漂移。
+services:
+  postgres:
+    image: postgres:17
+    container_name: multica-postgres
+    environment:
+      POSTGRES_USER: multica
+      POSTGRES_PASSWORD: multica
+      POSTGRES_DB: multica
+    ports:
+      - "5432:5432"
+    volumes:
+      - multica-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U multica -d multica"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  multica-pgdata:
