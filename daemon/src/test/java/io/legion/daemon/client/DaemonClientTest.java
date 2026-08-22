@@ -62,14 +62,15 @@ class DaemonClientTest {
     @Test
     void claimParsesReturnedTask() {
         claimResponse = "{\"task\":{\"id\":\"00000000-0000-0000-0000-000000000001\","
-                + "\"workspaceId\":\"00000000-0000-0000-0000-000000000002\","
-                + "\"issueId\":\"00000000-0000-0000-0000-000000000003\","
-                + "\"agentId\":\"00000000-0000-0000-0000-000000000004\","
+                + "\"workspace_id\":\"00000000-0000-0000-0000-000000000002\","
+                + "\"issue_id\":\"00000000-0000-0000-0000-000000000003\","
+                + "\"agent_id\":\"00000000-0000-0000-0000-000000000004\","
                 + "\"status\":\"dispatched\",\"context\":{\"prompt\":\"hi\"},\"priority\":5}}";
 
         AgentTaskRow task = client.claim();
 
         assertEquals("00000000-0000-0000-0000-000000000001", task.getId().toString());
+        assertEquals("00000000-0000-0000-0000-000000000002", task.getWorkspaceId().toString());
         assertEquals("dispatched", task.getStatus());
         assertEquals("hi", task.getContext().path("prompt").asText());
     }
@@ -101,7 +102,8 @@ class DaemonClientTest {
         assertTrue(applied);
         assertEquals("/api/daemon/tasks/" + taskId + "/fail", lastPath.get());
         assertTrue(lastBody.get().contains("boom"));
-        assertTrue(lastBody.get().contains("stub_failure"));
+        // 线格式 snake_case：failureClass → failure_class
+        assertTrue(lastBody.get().contains("failure_class"));
     }
 
     @Test
