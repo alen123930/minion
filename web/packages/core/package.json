@@ -10,6 +10,7 @@
   "exports": {
     ".": "./index.ts",
     "./api/schema": "./api/schema.ts",
+    "./issues": "./issues/index.ts",
     "./logger": "./logger.ts"
   },
   "dependencies": {
