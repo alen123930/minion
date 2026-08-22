@@ -6,15 +6,18 @@ services:
     image: postgres:17
     container_name: multica-postgres
     environment:
-      POSTGRES_USER: multica
-      POSTGRES_PASSWORD: multica
-      POSTGRES_DB: multica
+      # 凭据可用仓库根 .env 覆盖（模板见 .env.example），默认 multica 不变。
+      # 注意：POSTGRES_* 仅在数据卷首次初始化时生效，改值需重建卷。
+      POSTGRES_USER: ${POSTGRES_USER:-multica}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-multica}
+      POSTGRES_DB: ${POSTGRES_DB:-multica}
     ports:
-      - "5432:5432"
+      # 仅回环监听：开发库不得经局域网 IP 直连（NIMI-5）。
+      - "127.0.0.1:5432:5432"
     volumes:
       - multica-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U multica -d multica"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-multica} -d ${POSTGRES_DB:-multica}"]
       interval: 5s
       timeout: 3s
       retries: 10

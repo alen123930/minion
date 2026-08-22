@@ -1,0 +1,2 @@
+# 本地凭据覆盖（NIMI-5），模板见 .env.example；.env 不入库。
+.env
