@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.legion.server.mapper.AgentTaskQueueMapper">
+
+    <sql id="columns">
+        id, workspace_id, issue_id, agent_id, status, priority, created_at
+    </sql>
+
+    <!-- M0 入队：ON CONFLICT 推断命中 partial unique index
+         idx_one_pending_task_per_issue_agent（WHERE status IN ('queued','dispatched')），
+         已存在 pending 时静默合并为 0 行受影响（coalesce，设计 §4.3）。 -->
+    <insert id="enqueue" parameterType="io.legion.server.domain.AgentTaskQueueRow">
+        INSERT INTO agent_task_queue (id, workspace_id, issue_id, agent_id, status, priority, created_at)
+        VALUES (#{id}, #{workspaceId}, #{issueId}, #{agentId}, #{status}, #{priority}, #{createdAt})
+        ON CONFLICT (issue_id, agent_id) WHERE status IN ('queued', 'dispatched') DO NOTHING
+    </insert>
+
+    <select id="findPending" resultType="io.legion.server.domain.AgentTaskQueueRow">
+        SELECT
+        <include refid="columns"/>
+        FROM agent_task_queue
+        WHERE issue_id = #{issueId} AND agent_id = #{agentId}
+          AND status IN ('queued', 'dispatched')
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
+    </select>
+</mapper>

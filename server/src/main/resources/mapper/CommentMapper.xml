@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.legion.server.mapper.CommentMapper">
+
+    <select id="listByIssue" resultType="io.legion.server.domain.CommentRow">
+        SELECT id, issue_id, author_type, author_id, body, created_at
+        FROM comment
+        WHERE issue_id = #{issueId}
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+    <insert id="insert" parameterType="io.legion.server.domain.CommentRow">
+        INSERT INTO comment (id, issue_id, author_type, author_id, body, created_at)
+        VALUES (#{id}, #{issueId}, #{authorType}, #{authorId}, #{body}, #{createdAt})
+    </insert>
+</mapper>

@@ -21,6 +21,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- M0-4：MyBatis XML mapper（SQL 原文进 review，版本由父 POM dependencyManagement 锁定） -->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.legion</groupId>
+            <artifactId>legion-contracts</artifactId>
+        </dependency>
         <!-- M0-3：Flyway 迁移 + JDBC 数据源（MyBatis XML 由 M0-4 CRUD 任务按需引入） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -54,6 +63,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- M0-4：@ServiceConnection 把 Testcontainers 容器接进 Spring 上下文（M0-3 测试注释预留给本任务） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

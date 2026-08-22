@@ -1,6 +1,10 @@
-# M0-3：集成测试直连 Testcontainers（Flyway API + JdbcTemplate），不经 Spring 上下文；
-# 上下文接库（@ServiceConnection）留给 M0-4 CRUD 任务。此处排除自动配置，
-# 否则 classpath 上的 jdbc/flyway starter 会让 contextLoads 在无 DB 时失败。
+# M0-3：集成测试直连 Testcontainers（Flyway API + JdbcTemplate），不经 Spring 上下文。
+# 上下文接库（@ServiceConnection）在 M0-4 CRUD 任务落地。此处排除自动配置，
+# 否则 classpath 上的 jdbc/flyway starter 会让无 DB 的 contextLoads 失败。
+#
+# 注意：test-classpath 上的 application.yml 会遮蔽 main application.yml，
+# 故 MyBatis 与 Jackson 契约设置必须在测试侧复刻，否则集成测试拿不到
+# mapper XML 与 snake_case 输出。
 spring:
   application:
     name: legion-server
@@ -8,3 +12,8 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml

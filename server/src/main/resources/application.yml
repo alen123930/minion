@@ -9,3 +9,10 @@ spring:
     password: legion
   flyway:
     locations: classpath:db/migration
+  jackson:
+    # 契约字段统一 snake_case（DTO 为 camelCase record，输出经此策略转换，设计 §4.2）
+    property-naming-strategy: SNAKE_CASE
+
+mybatis:
+  # MyBatis XML mapper 位置（mapUnderscoreToCamelCase 与 TypeHandler 在 MybatisConfig 统一注册，设计 §4.8）
+  mapper-locations: classpath:mapper/*.xml
