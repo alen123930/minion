@@ -25,6 +25,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- M0-5：daemon↔server 协议 DTO + HTTP client 的 JSON 编解码（JDK HttpClient，零 web 容器） -->
+        <dependency>
+            <groupId>io.legion</groupId>
+            <artifactId>legion-contracts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!-- OffsetDateTime（created_at）反序列化需要 jsr310 模块 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

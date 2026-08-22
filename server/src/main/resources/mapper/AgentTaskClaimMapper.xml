@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.legion.server.mapper.AgentTaskClaimMapper">
+
+    <!--
+      M0 认领 SQL（设计 §3.4 M0 内嵌版）：去 runtime join，WHERE status='queued' 直接认领，
+      FOR UPDATE OF c SKIP LOCKED 保证两个 worker 抢同一行只有一个成功（M1 换成完整 SQL，Java 代码不动）。
+      NOT EXISTS 防同一 (issue, agent) 已有 dispatched/running 时被再次认领——
+      唯一索引只盖 queued/dispatched，running 不在索引谓词里，这里补上防 M1 引入 running 后漏网。
+      UPDATE...RETURNING 的返回行用 select 元素承载（MyBatis 的 update 只给受影响行数）。
+    -->
+    <resultMap id="agentTaskRow" type="io.legion.contracts.AgentTaskRow">
+        <id property="id" column="id"/>
+        <result property="workspaceId" column="workspace_id"/>
+        <result property="issueId" column="issue_id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="runtimeId" column="runtime_id"/>
+        <result property="status" column="status"/>
+        <result property="context" column="context" jdbcType="OTHER" typeHandler="io.legion.server.config.JsonNodeTypeHandler"/>
+        <result property="triggerCommentId" column="trigger_comment_id"/>
+        <result property="priority" column="priority"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="claimNextTask" resultMap="agentTaskRow">
+        UPDATE agent_task_queue t
+        SET status = 'dispatched', dispatched_at = now(), updated_at = now()
+        WHERE t.id = (
+            SELECT c.id
+            FROM agent_task_queue c
+            WHERE c.status = 'queued'
+              AND NOT EXISTS (
+                  SELECT 1 FROM agent_task_queue a
+                  WHERE a.issue_id = c.issue_id
+                    AND a.agent_id = c.agent_id
+                    AND a.status IN ('dispatched','running')
+              )
+            ORDER BY c.priority DESC, c.created_at ASC, c.id ASC
+            LIMIT 1
+            FOR UPDATE OF c SKIP LOCKED
+        )
+        RETURNING t.id, t.workspace_id, t.issue_id, t.agent_id, t.runtime_id,
+                  t.status, t.context, t.trigger_comment_id, t.priority, t.created_at
+    </select>
+
+    <!-- 终态 completed（设计 §3.5）：0 行受影响 = 已被终态化，重试幂等。 -->
+    <update id="completeTask">
+        UPDATE agent_task_queue
+        SET status = 'completed', result = #{result}::jsonb, completed_at = now(), updated_at = now()
+        WHERE id = #{id} AND status IN ('dispatched','running')
+    </update>
+
+    <!-- 终态 failed：error + failure_class 双字段落库。 -->
+    <update id="failTask">
+        UPDATE agent_task_queue
+        SET status = 'failed', error = #{error}, failure_class = #{failureClass},
+            completed_at = now(), updated_at = now()
+        WHERE id = #{id} AND status IN ('dispatched','running')
+    </update>
+</mapper>

@@ -16,3 +16,10 @@ spring:
 mybatis:
   # MyBatis XML mapper 位置（mapUnderscoreToCamelCase 与 TypeHandler 在 MybatisConfig 统一注册，设计 §4.8）
   mapper-locations: classpath:mapper/*.xml
+
+legion:
+  daemon:
+    embedded:
+      # M0 内嵌 worker 开关：仅真实运行开启；测试一律关（各集成测试自建容器与任务，防抢跑）
+      enabled: true
+      poll-interval: 3s
