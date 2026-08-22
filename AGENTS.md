@@ -4,11 +4,11 @@
 
 ## 项目定位
 
-Multica 复刻：AI 原生任务管理平台，agent 是一等公民受理人。参照原项目（Go）位于 /home/alen/multica-reference —— 下文所有"参照原项目"路径相对该目录。参照仓库的作用是**语义锚点**：移植任何一块行为，先读它的源码与测试，以测试锚定语义，不靠目测。
+legion 复刻：AI 原生任务管理平台，agent 是一等公民受理人。参照原项目（Go）位于 /home/alen/legion-reference —— 下文所有"参照原项目"路径相对该目录。参照仓库的作用是**语义锚点**：移植任何一块行为，先读它的源码与测试，以测试锚定语义，不靠目测。
 
 两份权威文档（冲突时以详细设计为准，再以里程碑文档为序）：
 
-- `docs/Multica复刻-任务拆解与里程碑方案.md` —— 做什么、什么顺序、多少工作量（M0-M4）
+- `docs/legion复刻-任务拆解与里程碑方案.md` —— 做什么、什么顺序、多少工作量（M0-M4）
 - `docs/design/` —— 详细设计，按章节拆分（README.md 为索引，01-12 对应 §一-§十二；"详细设计 §N"即文件 `NN-*.md`）
 - `docs/reference/` —— 原项目机制深读笔记（prompt 设计哲学等；设计决策的"为什么"出处，含 MUL 票据号）
 
@@ -80,7 +80,7 @@ web/packages/ui/    原子组件，禁止 import core
 
 当前 JDK 17 可跑 M0（Spring Boot 3 支持）；虚拟线程全量启用需 JDK 21（M1 并发任务上量前统一）。
 
-开发库凭据可用仓库根 `.env` 覆盖（模板 `.env.example`，默认 `multica`，仅数据卷首次初始化时生效）；compose 端口仅绑定 `127.0.0.1`，开发库不得经局域网 IP 直连。
+开发库凭据可用仓库根 `.env` 覆盖（模板 `.env.example`，默认 `legion`，仅数据卷首次初始化时生效）；compose 端口仅绑定 `127.0.0.1`，开发库不得经局域网 IP 直连。
 
 ```bash
 # M0 脚手架后生效
@@ -92,7 +92,7 @@ mvn test                         # 后端（Testcontainers 需 docker）
 pnpm test                        # 前端 Vitest
 ```
 
-参照仓库（multica-reference）是外部只读克隆，不属于本仓库任何构建；经 `wsl -d Ubuntu` 访问（`/home/alen/multica-reference`），仅用于参考仓库读取。
+参照仓库（legion-reference）是外部只读克隆，不属于本仓库任何构建；经 `wsl -d Ubuntu` 访问（`/home/alen/legion-reference`），仅用于参考仓库读取。
 
 ## 提交
 

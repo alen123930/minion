@@ -55,4 +55,4 @@ watchdog 三独立生命期用三个 ScheduledFuture：total 定时到点杀树�
 
 ## 6.4 假 agent
 
-M0 联调用 `FakeBackend`（contracts 提供接口，daemon 里做一个 echo 实现：分几条事件、延时、可注入失败与超时）。所有默认测试禁止执行真实 agent CLI；真 CLI 冒烟测试用环境变量门控（`MULTICA_RUN_REAL_AGENT_SMOKE=1`），对应原项目 agentintegration build tag 的隔离纪律。
+M0 联调用 `FakeBackend`（contracts 提供接口，daemon 里做一个 echo 实现：分几条事件、延时、可注入失败与超时）。所有默认测试禁止执行真实 agent CLI；真 CLI 冒烟测试用环境变量门控（`LEGION_RUN_REAL_AGENT_SMOKE=1`），对应原项目 agentintegration build tag 的隔离纪律。

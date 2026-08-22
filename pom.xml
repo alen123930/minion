@@ -18,7 +18,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>legion-parent</name>
-    <description>Multica 复刻：Maven 父 POM，模块划分见 docs/design/02-模块划分.md</description>
+    <description>legion 复刻：Maven 父 POM，模块划分见 docs/design/02-模块划分.md</description>
 
     <modules>
         <module>contracts</module>

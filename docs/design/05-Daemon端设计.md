@@ -33,7 +33,7 @@ usage 先报；fail-closed（只有显式 completed 算成功）；session_id �
 
 - `.managed_env.json`（managed_by/workspace/issue/agent 四元组）——Prepare 时刻写。它是"同 issue 后续任务可复用此环境"的资格证明。必须在诞生时写而不是完成时写：后续任务可能在上一任务完成后的瞬间被认领，早于上一任务写 `.gc_meta.json`（原项目 MUL-4886 的竞态）。
 - `.gc_meta.json`（kind: issue/chat、completed_at、local_directory 标记）——终态时写，GC 据此决策。
-- `.multica_sidecar_manifest.json`——写进 workdir 的所有文件清单；Prepare 失败时按它回滚（回滚 defer 在第一次写之前武装，MUL-6132）。
+- `.legion_sidecar_manifest.json`——写进 workdir 的所有文件清单；Prepare 失败时按它回滚（回滚 defer 在第一次写之前武装，MUL-6132）。
 
 M0 简化：只做 workdir + `.agent_context/issue_context.md`（任务简报）+ `.gc_meta.json` + 72h 孤儿 TTL 扫描。manifest 与 managed_env 从 M1 加。
 

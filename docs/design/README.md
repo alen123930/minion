@@ -1,8 +1,8 @@
-# Multica 复刻：详细设计（Java Spring Boot + React）
+# legion 复刻：详细设计（Java Spring Boot + React）
 
-定位：里程碑文档（《Multica复刻-任务拆解与里程碑方案.md》）管"做什么、什么顺序、多少工作量"；本文管"具体怎么做"。两者共用同一套 M0-M4 里程碑，本文不改变顺序与验收判据，只把落点从 Go 参照栈翻译到 Java Spring Boot + React 栈。
+定位：里程碑文档（《legion复刻-任务拆解与里程碑方案.md》）管"做什么、什么顺序、多少工作量"；本文管"具体怎么做"。两者共用同一套 M0-M4 里程碑，本文不改变顺序与验收判据，只把落点从 Go 参照栈翻译到 Java Spring Boot + React 栈。
 
-所有 server/... pkg/... 参照路径仍相对 /home/alen/multica-reference（Go 原仓库），它们的作用是"语义锚点"——移植时以测试锚定语义，不靠目测。
+所有 server/... pkg/... 参照路径仍相对 /home/alen/legion-reference（Go 原仓库），它们的作用是"语义锚点"——移植时以测试锚定语义，不靠目测。
 
 ---
 
@@ -23,5 +23,5 @@
 
 ---
 
-参照仓库：/home/alen/multica-reference（所有 server/... pkg/... 路径相对此目录）。
-姊妹文档：《Multica复刻-任务拆解与里程碑方案.md》（里程碑、工作配比、M1/M2 参照文件速查、风险清单——本文不重复其内容）。
+参照仓库：/home/alen/legion-reference（所有 server/... pkg/... 路径相对此目录）。
+姊妹文档：《legion复刻-任务拆解与里程碑方案.md》（里程碑、工作配比、M1/M2 参照文件速查、风险清单——本文不重复其内容）。
