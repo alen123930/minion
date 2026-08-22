@@ -5,15 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.multica</groupId>
-        <artifactId>multica-parent</artifactId>
+        <groupId>io.legion</groupId>
+        <artifactId>legion-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>multica-daemon</artifactId>
+    <artifactId>legion-daemon</artifactId>
     <packaging>jar</packaging>
-    <name>multica-daemon</name>
-    <description>Multica daemon：Spring Boot 应用，无 web 容器仅 actuator（loop/ env/ agent/ 由后续任务引入）</description>
+    <name>legion-daemon</name>
+    <description>legion daemon：Spring Boot 应用，无 web 容器仅 actuator（loop/ env/ agent/ 由后续任务引入）</description>
 
     <dependencies>
         <!-- 设计 §二：daemon 无 web 容器，仅 actuator；loop/env/agent 是业务依赖，按需后补 -->

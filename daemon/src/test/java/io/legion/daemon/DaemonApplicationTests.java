@@ -1,4 +1,4 @@
-package io.multica.daemon;
+package io.legion.daemon;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

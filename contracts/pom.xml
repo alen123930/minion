@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.multica</groupId>
-        <artifactId>multica-parent</artifactId>
+        <groupId>io.legion</groupId>
+        <artifactId>legion-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>multica-contracts</artifactId>
+    <artifactId>legion-contracts</artifactId>
     <packaging>jar</packaging>
-    <name>multica-contracts</name>
+    <name>legion-contracts</name>
     <description>协议 DTO + 事件类型枚举 + reason code；server/daemon 共用，不依赖 Spring</description>
 
     <dependencies>

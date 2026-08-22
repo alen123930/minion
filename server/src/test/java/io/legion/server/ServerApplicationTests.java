@@ -1,4 +1,4 @@
-package io.multica.server;
+package io.legion.server;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

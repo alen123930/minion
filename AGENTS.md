@@ -30,14 +30,14 @@ JDK 21 + Spring Boot 3.5（WebMvc）+ MyBatis（XML mapper）+ Flyway + PostgreS
 
 ```
 contracts/        协议 DTO + 事件类型枚举 + reason code；server/daemon 共用
-server/           multica-server：Spring Boot API（WebMvc + SSE/WS + MyBatis + Flyway）
-daemon/           multica-daemon：Spring Boot（无 web 容器）loop/ env/ agent/
+server/           legion-server：Spring Boot API（WebMvc + SSE/WS + MyBatis + Flyway）
+daemon/           legion-daemon：Spring Boot（无 web 容器）loop/ env/ agent/
 web/apps/web/     Vite React SPA
 web/packages/core/  无头业务层：api client + React Query hooks + Zustand stores
 web/packages/ui/    原子组件，禁止 import core
 ```
 
-包根 `io.multica`。
+包根 `io.legion`。
 
 ## 硬规则
 
