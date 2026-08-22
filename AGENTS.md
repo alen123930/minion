@@ -74,15 +74,17 @@ web/packages/ui/    原子组件，禁止 import core
 - 修复预算 40%：原项目每月 fix 类产出占 40-48%，每个功能里程碑按此排期，不要全部排新功能
 - 遇到原项目代码里"看不懂为什么这么写"的分支，先搜它的 MUL 票据引用再动手简化——通常是事故修的
 
-## 环境（WSL，无 sudo）
+## 环境（Windows 侧）
 
-本机工具链 portable 安装。新会话先 `source ~/.local/env.sh`（JDK + Maven，aliyun 镜像）。
+开发/构建/验证全部在 Windows 侧执行。当前工具链（2026-08 核对）：JDK 17.0.12、Node 24.15.0、pnpm 10.34.5（corepack）、Maven 3.9.16（choco）、Docker 29.4.0、gh 2.98.0。
 
 当前 JDK 17 可跑 M0（Spring Boot 3 支持）；虚拟线程全量启用需 JDK 21（M1 并发任务上量前统一）。
 
+开发库凭据可用仓库根 `.env` 覆盖（模板 `.env.example`，默认 `multica`，仅数据卷首次初始化时生效）；compose 端口仅绑定 `127.0.0.1`，开发库不得经局域网 IP 直连。
+
 ```bash
 # M0 脚手架后生效
-docker compose up -d postgres    # postgres:17
+docker compose up -d postgres    # postgres:17，仅 127.0.0.1:5432
 mvn spring-boot:run -pl server   # daemon M0 内嵌于 server
 mvn spring-boot:run -pl daemon   # M1 起独立进程
 pnpm dev                         # web/
@@ -90,7 +92,7 @@ mvn test                         # 后端（Testcontainers 需 docker）
 pnpm test                        # 前端 Vitest
 ```
 
-参照仓库（multica-reference）是外部只读克隆，不属于本仓库任何构建。
+参照仓库（multica-reference）是外部只读克隆，不属于本仓库任何构建；经 `wsl -d Ubuntu` 访问（`/home/alen/multica-reference`），仅用于参考仓库读取。
 
 ## 提交
 
