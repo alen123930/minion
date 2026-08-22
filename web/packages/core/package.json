@@ -1,0 +1,30 @@
+{
+  "name": "@legion/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./api/schema": "./api/schema.ts",
+    "./logger": "./logger.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.62.0",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.2"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.12",
+    "react": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vitest": "^3.0.0"
+  }
+}
