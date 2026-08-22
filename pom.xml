@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 继承 spring-boot-starter-parent：Jackson / Flyway / Caffeine / JUnit 等版本由其 BOM 锁定，
+         全仓版本升级只改这一处（NIMI-4 要求父 POM 统一依赖管理）。 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.16</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>io.legion</groupId>
+    <artifactId>legion-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>legion-parent</name>
+    <description>Multica 复刻：Maven 父 POM，模块划分见 docs/design/02-模块划分.md</description>
+
+    <modules>
+        <module>contracts</module>
+        <module>server</module>
+        <module>daemon</module>
+    </modules>
+
+    <properties>
+        <!-- M0 兼容档 JDK 17（AGENTS.md：虚拟线程全量启用需 21，M1 并发上量前统一） -->
+        <java.version>17</java.version>
+        <!-- MyBatis 不在 Spring Boot BOM 内，须父 POM 显式锁定；3.0.x 线对应 Boot 3.x（4.x 对应 Boot 4） -->
+        <mybatis-spring-boot.version>3.0.5</mybatis-spring-boot.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>${mybatis-spring-boot.version}</version>
+            </dependency>
+            <!-- 内部模块互引不带版本号 -->
+            <dependency>
+                <groupId>io.legion</groupId>
+                <artifactId>legion-contracts</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>
