@@ -6,5 +6,5 @@ target/
 *.iml
 .vscode/
 
-# 本地环境变量覆盖（NIMI-5：.env 覆盖 compose 凭据，不入库）
+# 本地凭据覆盖（NIMI-5），模板见 .env.example；.env 不入库。
 .env
