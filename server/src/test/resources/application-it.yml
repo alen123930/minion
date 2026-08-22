@@ -1,0 +1,5 @@
+# M0-4 集成测试 profile：需要真数据源（Testcontainers @ServiceConnection 注入），
+# 覆盖基础 application.yml 里的 autoconfigure.exclude（profile 配置优先，空列表 = 不排除）。
+spring:
+  autoconfigure:
+    exclude: []

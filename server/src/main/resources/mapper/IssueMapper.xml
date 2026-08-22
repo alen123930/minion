@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.legion.server.mapper.IssueMapper">
+
+    <sql id="columns">
+        id, workspace_id, title, description, status, priority,
+        assignee_type, assignee_id, creator_type, creator_id, created_at, updated_at
+    </sql>
+
+    <select id="listAll" resultType="io.legion.server.domain.IssueRow">
+        SELECT
+        <include refid="columns"/>
+        FROM issue
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findById" resultType="io.legion.server.domain.IssueRow">
+        SELECT
+        <include refid="columns"/>
+        FROM issue
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="io.legion.server.domain.IssueRow">
+        INSERT INTO issue (id, workspace_id, title, description, status, priority,
+                           assignee_type, assignee_id, creator_type, creator_id, created_at, updated_at)
+        VALUES (#{id}, #{workspaceId}, #{title}, #{description}, #{status}, #{priority},
+                #{assigneeType}, #{assigneeId}, #{creatorType}, #{creatorId}, #{createdAt}, #{updatedAt})
+    </insert>
+</mapper>

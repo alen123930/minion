@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.legion.server.mapper.AgentMapper">
+
+    <select id="findById" resultType="io.legion.server.domain.AgentRow">
+        SELECT id, workspace_id, name, runtime_mode, status, max_concurrent_tasks, created_at
+        FROM agent
+        WHERE id = #{id}
+    </select>
+</mapper>
