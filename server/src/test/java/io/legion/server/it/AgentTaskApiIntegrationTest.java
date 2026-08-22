@@ -2,6 +2,8 @@ package io.legion.server.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.HttpURLConnection;
+import java.time.Duration;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -75,6 +77,35 @@ class AgentTaskApiIntegrationTest extends AbstractIntegrationTest {
                 mapOf("issue_id", UUID.randomUUID().toString()),
                 String.class);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void manualTriggerCoalesceDoesNotReBroadcastTaskQueued() throws Exception {
+        UUID agentId = insertAgent("coalesce-no-rebroadcast");
+        UUID issueId = insertIssue("coalesce target");
+
+        HttpURLConnection conn = openStream(issueId);
+        try {
+            String connected = readDataLine(conn, Duration.ofSeconds(5));
+            assertThat(connected).isNotNull();
+
+            ResponseEntity<String> first = rest.postForEntity(
+                    "/api/agents/" + agentId + "/tasks",
+                    mapOf("issue_id", issueId.toString()), String.class);
+            assertThat(first.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+            String queued = readDataLine(conn, Duration.ofSeconds(5));
+            assertThat(json.readTree(queued).get("type").asText()).isEqualTo("task:queued");
+
+            ResponseEntity<String> second = rest.postForEntity(
+                    "/api/agents/" + agentId + "/tasks",
+                    mapOf("issue_id", issueId.toString()), String.class);
+            assertThat(second.getStatusCode()).isEqualTo(HttpStatus.OK);
+            // coalesce（0 行受影响）不广播 task:queued：短窗口内不应再收到 data 帧
+            assertThat(readDataLine(conn, Duration.ofMillis(1500)))
+                    .as("coalesced trigger must not emit task:queued").isNull();
+        } finally {
+            conn.disconnect();
+        }
     }
 
     private JsonNode parseObject(String body) {

@@ -44,8 +44,14 @@ public class CommentService {
         if (!"member".equals(authorType) && !"agent".equals(authorType)) {
             throw new BadRequestException("author_type must be 'member' or 'agent'");
         }
+        if ("agent".equals(authorType) && req.authorId() == null) {
+            throw new BadRequestException("author_id is required for author_type 'agent'");
+        }
         UUID authorId = req.authorId() == null ? DEFAULT_MEMBER_ID : req.authorId();
 
+        // 评论算 issue 活动：同事务 bump issue.updated_at（原项目 comment.sql 的
+        // touch 语义，"Updated date" 排序与 daemon GC TTL 都读它，属 load-bearing）
+        commentMapper.touchIssueUpdatedAt(issueId);
         CommentRow row = new CommentRow(UUID.randomUUID(), issueId, authorType, authorId, req.body(), OffsetDateTime.now());
         commentMapper.insert(row);
         CommentDto dto = DtoFactory.comment(row);

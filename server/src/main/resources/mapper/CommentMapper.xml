@@ -13,4 +13,8 @@
         INSERT INTO comment (id, issue_id, author_type, author_id, body, created_at)
         VALUES (#{id}, #{issueId}, #{authorType}, #{authorId}, #{body}, #{createdAt})
     </insert>
+
+    <update id="touchIssueUpdatedAt">
+        UPDATE issue SET updated_at = now() WHERE id = #{issueId}
+    </update>
 </mapper>

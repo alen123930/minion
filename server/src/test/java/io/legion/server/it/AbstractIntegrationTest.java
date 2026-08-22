@@ -3,6 +3,14 @@ package io.legion.server.it;
 import static io.legion.server.WorkspaceDefaults.DEFAULT_MEMBER_ID;
 import static io.legion.server.WorkspaceDefaults.DEFAULT_WORKSPACE_ID;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,5 +69,39 @@ public abstract class AbstractIntegrationTest {
         return jdbc.queryForObject(
                 "SELECT count(*) FROM agent_task_queue WHERE issue_id = ? AND agent_id = ? AND status = 'queued'",
                 Integer.class, issueId, agentId);
+    }
+
+    /** 打开一条 issue SSE 连接（不读流）；用于断言事件流行为。 */
+    protected HttpURLConnection openStream(UUID issueId) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(
+                rest.getRootUri() + "/api/issues/" + issueId + "/stream").openConnection();
+        conn.setConnectTimeout(5_000);
+        conn.setReadTimeout(2_000);
+        return conn;
+    }
+
+    /** 读一条 SSE data 帧（payload 去 data: 前缀）；超时窗口内无帧返回 null。 */
+    protected String readDataLine(HttpURLConnection conn, Duration timeout) throws IOException {
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+        long deadline = System.currentTimeMillis() + timeout.toMillis();
+        while (System.currentTimeMillis() < deadline) {
+            String line;
+            try {
+                line = reader.readLine();
+            } catch (SocketTimeoutException e) {
+                continue;
+            }
+            if (line == null) {
+                return null;
+            }
+            if (line.startsWith("data:")) {
+                String payload = line.substring("data:".length()).trim();
+                if (!payload.isEmpty()) {
+                    return payload;
+                }
+            }
+        }
+        return null;
     }
 }
