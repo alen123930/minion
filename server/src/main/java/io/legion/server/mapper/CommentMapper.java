@@ -15,4 +15,7 @@ public interface CommentMapper {
     List<CommentRow> listByIssue(@Param("issueId") UUID issueId);
 
     int insert(CommentRow row);
+
+    /** 评论算 issue 活动：bump issue.updated_at（与原项目 comment 创建同事务 touch 一致）。 */
+    int touchIssueUpdatedAt(@Param("issueId") UUID issueId);
 }

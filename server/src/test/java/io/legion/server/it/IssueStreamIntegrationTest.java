@@ -2,13 +2,7 @@ package io.legion.server.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.SocketTimeoutException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -65,37 +59,5 @@ class IssueStreamIntegrationTest extends AbstractIntegrationTest {
         } finally {
             conn.disconnect();
         }
-    }
-
-    private HttpURLConnection openStream(UUID issueId) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(
-                rest.getRootUri() + "/api/issues/" + issueId + "/stream").openConnection();
-        conn.setConnectTimeout(5_000);
-        conn.setReadTimeout(2_000);
-        return conn;
-    }
-
-    private String readDataLine(HttpURLConnection conn, Duration timeout) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-        long deadline = System.currentTimeMillis() + timeout.toMillis();
-        while (System.currentTimeMillis() < deadline) {
-            String line;
-            try {
-                line = reader.readLine();
-            } catch (SocketTimeoutException e) {
-                continue;
-            }
-            if (line == null) {
-                return null;
-            }
-            if (line.startsWith("data:")) {
-                String payload = line.substring("data:".length()).trim();
-                if (!payload.isEmpty()) {
-                    return payload;
-                }
-            }
-        }
-        return null;
     }
 }

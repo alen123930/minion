@@ -6,6 +6,7 @@ import static io.legion.server.WorkspaceDefaults.DEFAULT_WORKSPACE_ID;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,6 +39,15 @@ public class IssueService {
     /** WillEnqueueRun 的决策产物：为谁入队。 */
     public record RunTrigger(UUID issueId, UUID agentId) {
     }
+
+    /**
+     * 状态/优先级白名单（参照原项目 issuestatus 7 内建 key 与 validIssuePriorities；
+     * M0 无自定义状态目录表，白名单即全集，避免把语义垃圾当可执行）。
+     */
+    private static final Set<String> VALID_STATUSES =
+            Set.of("backlog", "todo", "in_progress", "in_review", "done", "blocked", "cancelled");
+    private static final Set<String> VALID_PRIORITIES =
+            Set.of("urgent", "high", "medium", "low", "none");
 
     private final IssueMapper issueMapper;
     private final CommentMapper commentMapper;
@@ -78,6 +88,12 @@ public class IssueService {
         // 原项目默认值：status todo、priority none（参照 issue.go CreateIssue）
         String status = (req.status() == null || req.status().isBlank()) ? "todo" : req.status();
         String priority = (req.priority() == null || req.priority().isBlank()) ? "none" : req.priority();
+        if (!VALID_STATUSES.contains(status)) {
+            throw new BadRequestException("status must be one of " + VALID_STATUSES);
+        }
+        if (!VALID_PRIORITIES.contains(priority)) {
+            throw new BadRequestException("priority must be one of " + VALID_PRIORITIES);
+        }
         String assigneeType = req.assigneeType();
         UUID assigneeId = req.assigneeId();
         validateAssignee(assigneeType, assigneeId);
@@ -97,6 +113,8 @@ public class IssueService {
 
     /** WillEnqueueRun：单一路径决定"这次写是否会起一个 agent 运行"，与入队实现同源。 */
     Optional<RunTrigger> willEnqueueRun(IssueRow issue, IssueChange change) {
+        // create 路径 validateAssignee 已确认 agent 存在（否则 400），此查询主要是
+        // 谓词自足（纯函数可单测）+ 为 M1 状态迁移/重分派路径兜底；M0 create 恒命中。
         boolean agentExists = issue.assigneeId() != null && agentMapper.findById(issue.assigneeId()) != null;
         return decideEnqueue(issue, change, agentExists);
     }

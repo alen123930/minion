@@ -103,6 +103,16 @@ class IssueApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createIssueRejectsUnknownStatus() {
+        ResponseEntity<String> res = rest.postForEntity(
+                "/api/issues",
+                mapOf("title", "garbage status", "status", "frozen"),
+                String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void getIssueDetailIncludesComments() {
         UUID issueId = insertIssue("detail me");
         rest.postForEntity("/api/issues/" + issueId + "/comments",

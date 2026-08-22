@@ -2,6 +2,7 @@ package io.legion.server.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,29 @@ class CommentApiIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> res = rest.postForEntity(
                 "/api/issues/" + issueId + "/comments",
                 mapOf("body", "   "),
+                String.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void createCommentBumpsIssueUpdatedAt() {
+        UUID issueId = jdbc.queryForObject(
+                "INSERT INTO issue (workspace_id, title, creator_type, creator_id, updated_at) VALUES (?, ?, 'member', ?, ?) RETURNING id",
+                UUID.class, WS_ID, "touch target", MEMBER_ID, OffsetDateTime.now().minusHours(1));
+
+        rest.postForEntity("/api/issues/" + issueId + "/comments", mapOf("body", "bump"), String.class);
+
+        OffsetDateTime after = jdbc.queryForObject(
+                "SELECT updated_at FROM issue WHERE id = ?", OffsetDateTime.class, issueId);
+        assertThat(after).isAfter(OffsetDateTime.now().minusMinutes(1));
+    }
+
+    @Test
+    void agentAuthorRequiresAuthorId() {
+        UUID issueId = insertIssue("agent author target");
+        ResponseEntity<String> res = rest.postForEntity(
+                "/api/issues/" + issueId + "/comments",
+                mapOf("author_type", "agent", "body", "no id"),
                 String.class);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
