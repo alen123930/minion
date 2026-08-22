@@ -1,7 +1,7 @@
-# Multica Prompt 设计哲学（原项目深读笔记）
+# 原项目 Prompt 设计哲学（深读笔记）
 
 > 原项目机制深读，2026-08-22。服务于复刻详细设计 §6（Agent 适配层）与 M0 任务 3/4 之间的 prompt 渲染部分。
-> 所有路径相对 /home/alen/multica-reference。票据号（MUL-xxxx / #xxxx）是原仓库注释里自带的出处。
+> 所有路径相对 /home/alen/legion-reference。票据号（MUL-xxxx / #xxxx）是原仓库注释里自带的出处。
 
 读的三个文件：
 
@@ -66,8 +66,8 @@ Brief 字节稳定，所以它**说不了**这轮是什么触发的。解法：�
 SessionContinuityNotice 三个变体（runtime_config_sections.go，MUL-4424 / MUL-5722）。区分问题是"**对话还能不能被读回**"，不是"这是不是聊天"：
 
 - issue：对话就是 issue 正文和评论，原封不动——宣布"上文丢了"是描述一个没发生的损失
-- Slack：对话在 channel，`multica chat history/thread` 读得回
-- web / Feishu / WeCom / DingTalk：Multica 存了 transcript，读得回
+- Slack：对话在 channel，原项目 CLI 的 `chat history/thread` 读得回
+- web / Feishu / WeCom / DingTalk：原项目存了 transcript，读得回
 
 三种情况真正丢的只有 agent 自己没落盘的工作记忆（试过什么、排除了什么、走到哪了），三个变体都说**只**丢这个，并叮嘱重新推导、别声称记录撑不起的连续性、别拿这个开场。只有无法读回的表面（防御性兜底，当前不存在此类表面）才要求向用户明说是新会话。"准确地说比大声地说重要"。
 
@@ -75,14 +75,14 @@ SessionContinuityNotice 三个变体（runtime_config_sections.go，MUL-4424 / M
 
 taskIsSquadLeader（prompt.go:705）：leader 是**逐 task 角色**，同一 agent 这轮当 leader 下轮当 worker。以前靠嗅探 Instructions 里有没有 briefing 标题——任何 agent 的自定义指令碰巧含这个标题就被晋升为 leader、拿到 leader 规则。现在是 claim 响应的显式字段（is_leader_task / squad_id）+ capability gate（leader_role_resolved），注释详细论证了老服务器两个群体的不可判定性："capability gate 是承重的，不是仪式"（MUL-5811 待最低服务器版本后删掉 legacy 分支）。
 
-配套的 no_action 规则同样典型：判定无需行动就调 `multica squad activity no_action` 记录然后退出，"**不许**发评论——连'无需行动'这种评论都不许"，评论是冗余噪音。
+配套的 no_action 规则同样典型：判定无需行动就调原项目 CLI 的 `squad activity no_action` 记录然后退出，"**不许**发评论——连'无需行动'这种评论都不许"，评论是冗余噪音。
 
 ## 九、防自毁细节（每条背后一次事故）
 
-- quick-create：`multica issue create` 绝不因任何原因重试——issue 可能已建，重试就是重复（prompt.go:270）
+- quick-create：原项目 CLI 的 `issue create` 绝不因任何原因重试——issue 可能已建，重试就是重复（prompt.go:270）
 - 富文本必须走 `--description-file`，文件必须在 cwd、绝不许 /tmp——"别的 run 可能留下陈旧文件，静默变成这个 issue 的描述"；内联传富文本会被 shell 改写/截断（MUL-2904）
 - 匹配 assignee / project / parent 一律 UUID 优先于名字——抗重名、抗 workspace 自定义前缀；"不要假设 MUL- 这类前缀"
-- 聊天附件列 id 而非 URL——签名 CDN 短 TTL，"等 agent 想完，markdown 里的 URL 已过期"，`multica attachment download <id>` 取时重签（prompt.go:582）
+- 聊天附件列 id 而非 URL——签名 CDN 短 TTL，"等 agent 想完，markdown 里的 URL 已过期"，原项目 CLI 的 `attachment download <id>` 取时重签（prompt.go:582）
 - brief 注入用 marker 块包裹，绝不覆盖用户已有文件：文件缺失→只写 marker 块；已存在→追加带字节边界的分隔符；已有 marker 块→原位替换。Cleanup 按 separator 字节边界还原用户原始字节。当年无条件 os.WriteFile 把用户仓库的 CLAUDE.md 截断过（MUL-2753）
 
 ---

@@ -1,7 +1,7 @@
-# Multica 复刻：任务拆解与里程碑方案
+# legion 复刻：任务拆解与里程碑方案
 
-基于 github.com/multica-ai/multica 开源仓库的代码结构、changelog 史实与事故注释的完整分析。
-分析仓库位于 /home/alen/multica-reference（持久位置，含 changelog 提取件）。
+基于参照原项目开源仓库（Go）的代码结构、changelog 史实与事故注释的完整分析。
+分析仓库位于 /home/alen/legion-reference（持久位置，含 changelog 提取件）。
 
 ---
 
@@ -277,7 +277,7 @@ M4 execenv：server/internal/daemon/execenv/（worktree/GC/环境准备）；rep
 ---
 
 分析产物位置：
-- 分析仓库（持久）：/home/alen/multica-reference
-- changelog 全文提取件：/home/alen/multica-reference/changelog_full.txt（107 版本完整条目）
-- 文档中所有 server/... pkg/... 相对路径均相对 /home/alen/multica-reference
+- 分析仓库（持久）：/home/alen/legion-reference
+- changelog 全文提取件：/home/alen/legion-reference/changelog_full.txt（107 版本完整条目）
+- 文档中所有 server/... pkg/... 相对路径均相对 /home/alen/legion-reference
 - 原仓库 changelog 源：apps/web/features/landing/i18n/en.ts
