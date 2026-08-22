@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.multica</groupId>
+        <artifactId>multica-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>multica-contracts</artifactId>
+    <packaging>jar</packaging>
+    <name>multica-contracts</name>
+    <description>协议 DTO + 事件类型枚举 + reason code；server/daemon 共用，不依赖 Spring</description>
+
+    <dependencies>
+        <!-- 协议层保持零框架依赖；测试只要 JUnit 5（版本随 Boot BOM） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

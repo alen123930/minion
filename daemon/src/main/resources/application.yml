@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: multica-daemon
+  main:
+    # 设计 §二：daemon 无 web 容器。显式钉死 none——将来误引 web 依赖时启动即失败，
+    # 而不是悄悄开一个端口。
+    web-application-type: none

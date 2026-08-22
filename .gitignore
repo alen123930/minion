@@ -1,0 +1,10 @@
+# Maven 构建产物
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 本地环境变量覆盖（NIMI-5：.env 覆盖 compose 凭据，不入库）
+.env
