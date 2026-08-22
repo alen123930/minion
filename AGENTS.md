@@ -9,7 +9,7 @@ Multica 复刻：AI 原生任务管理平台，agent 是一等公民受理人。
 两份权威文档（冲突时以详细设计为准，再以里程碑文档为序）：
 
 - `docs/Multica复刻-任务拆解与里程碑方案.md` —— 做什么、什么顺序、多少工作量（M0-M4）
-- `docs/Multica复刻-详细设计-JavaSpringBoot与React.md` —— 具体怎么做（本文件多数规则的出处，引用格式"详细设计 §N"）
+- `docs/design/` —— 详细设计，按章节拆分（README.md 为索引，01-12 对应 §一-§十二；"详细设计 §N"即文件 `NN-*.md`）
 
 注意：参照仓库的 git log 是 squash 快照，不是开发历史；任何时间线论断以其 i18n changelog 为准。
 
