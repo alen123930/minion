@@ -2,6 +2,7 @@ package io.legion.contracts;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
@@ -15,13 +16,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 钉住 daemon↔server 协议的 JSON 形状（AGENTS.md：协议即产品契约）。
  * 端点路径不变、字段名不变——这里变了，下游 client 就会跟着漂。
+ * 线格式统一 snake_case（server 全局 jackson 策略，M0-4 设计 §4.2），
+ * 故用 SNAKE_CASE mapper 序列化来钉住 wire shape。
  */
 class DaemonProtocolDtoTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
     @Test
-    void claimResponseSerializesTaskFields() throws Exception {
+    void claimResponseSerializesTaskFieldsSnakeCase() throws Exception {
         AgentTaskRow task = new AgentTaskRow();
         task.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         task.setWorkspaceId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
@@ -37,7 +41,7 @@ class DaemonProtocolDtoTest {
         assertEquals("00000000-0000-0000-0000-000000000001",
                 root.path("task").path("id").asText());
         assertEquals("00000000-0000-0000-0000-000000000002",
-                root.path("task").path("workspaceId").asText());
+                root.path("task").path("workspace_id").asText());
         assertEquals("dispatched", root.path("task").path("status").asText());
         assertEquals("hi", root.path("task").path("context").path("prompt").asText());
         assertEquals(5, root.path("task").path("priority").asInt());
@@ -60,8 +64,10 @@ class DaemonProtocolDtoTest {
     }
 
     @Test
-    void failRequestCarriesErrorAndStableClass() throws Exception {
+    void failRequestSerializesErrorAndStableClassSnakeCase() throws Exception {
         String json = mapper.writeValueAsString(new FailTaskRequest("boom", "stub_failure"));
+        // 线格式 snake_case：failureClass → failure_class
+        assertTrue(json.contains("failure_class"));
         FailTaskRequest req = mapper.readValue(json, FailTaskRequest.class);
         assertEquals("boom", req.error());
         assertEquals("stub_failure", req.failureClass());

@@ -3,6 +3,7 @@ package io.legion.daemon.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.legion.contracts.AgentTaskRow;
 import io.legion.contracts.ClaimTaskResponse;
@@ -39,6 +40,9 @@ public class DaemonClient {
                 .build();
         this.json = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
+                // 契约字段统一 snake_case（server 侧全局 jackson 策略，M0-4 §4.2）——
+                // DTO 保持 camelCase，线格式对齐，否则 failureClass ↔ failure_class 对不上
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                 // 协议演进时 server 可能多带字段，未知字段不允许炸掉旧 client
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }

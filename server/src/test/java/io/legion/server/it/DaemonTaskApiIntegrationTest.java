@@ -8,6 +8,7 @@ import io.legion.contracts.CompleteTaskResponse;
 import io.legion.contracts.FailTaskRequest;
 import io.legion.contracts.FailTaskResponse;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -29,8 +30,12 @@ class DaemonTaskApiIntegrationTest extends TaskQueueIntegrationTestBase {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    @Autowired
+    RestClient.Builder restBuilder;
+
+    /** 用 Boot 自动配置的 RestClient.Builder：Jackson 转换器吃全局 snake_case 契约。 */
     private RestClient rest() {
-        return RestClient.builder().baseUrl(baseUrl()).build();
+        return restBuilder.clone().baseUrl(baseUrl()).build();
     }
 
     @Test
