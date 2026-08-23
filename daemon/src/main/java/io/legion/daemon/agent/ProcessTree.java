@@ -53,20 +53,36 @@ final class ProcessTree {
     }
 
     private static void destroyTreeWindows(Process p) {
-        ProcessHandle leader = p.toHandle();
+        Integer killerExit = killViaTaskkill(p.toHandle().pid());
+        if (killerExit != null && killerExit == 0) {
+            return;
+        }
+        // taskkill 失败（非零退出/超时/IO 异常）：不能当成杀树成功——否则
+        // 整树还活着，后续 waitFor 无限阻塞。退回 JDK 句柄枚举兜底（评审 minor）
+        p.descendants().forEach(ProcessHandle::destroyForcibly);
+        p.destroyForcibly();
+    }
+
+    /**
+     * 运行 taskkill /PID x /T /F，返回退出码；启动失败/超时返回 null
+     * （调用方一律走兜底）。包级可见供测试钉住"非零退出 = 失败"前提。
+     */
+    static Integer killViaTaskkill(long pid) {
         try {
             Process killer = new ProcessBuilder(
-                    "taskkill", "/PID", String.valueOf(leader.pid()), "/T", "/F")
+                    "taskkill", "/PID", String.valueOf(pid), "/T", "/F")
                     .start();
             killer.getInputStream().readAllBytes();
-            killer.waitFor(10, TimeUnit.SECONDS);
-        } catch (IOException | InterruptedException e) {
-            // taskkill 不可用时退回 JDK 句柄枚举（覆盖面 weaker，聊胜于无）
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
+            if (!killer.waitFor(10, TimeUnit.SECONDS)) {
+                killer.destroyForcibly();
+                return null;
             }
-            p.descendants().forEach(ProcessHandle::destroyForcibly);
-            p.destroyForcibly();
+            return killer.exitValue();
+        } catch (IOException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
     }
 

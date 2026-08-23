@@ -178,4 +178,15 @@ class TaskWorkerLoopTest {
         loop.poll();
         assertEquals(List.of("claim"), requestLog);
     }
+
+    @Test
+    void outcomeWaitDerivesFromTotalTimeout() {
+        // outcome 等待必须比 total-timeout 长（看门狗杀树后 outcome 才完成），
+        // 否则任务先被判"结算异常"滞留 dispatched。默认 total=30m 时 15m 硬编码会提前抛
+        assertEquals(Duration.ofMinutes(30).plusSeconds(30), TaskWorkerLoop.outcomeWait(
+                new io.legion.contracts.agent.ExecOptions(null, null, null,
+                        Duration.ofMinutes(30), null, null, null)));
+        assertEquals(Duration.ofMinutes(15), TaskWorkerLoop.outcomeWait(
+                io.legion.contracts.agent.ExecOptions.defaults()));
+    }
 }

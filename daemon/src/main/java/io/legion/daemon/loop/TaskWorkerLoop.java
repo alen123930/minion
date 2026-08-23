@@ -75,8 +75,17 @@ public class TaskWorkerLoop {
         execute(task);
     }
 
-    private void execute(io.legion.contracts.AgentTaskRow task) {
-        Session session;
+    /**
+     * outcome 等待上限：配了 totalTimeout 就取 total+30s 宽限（看门狗杀树后
+     * outcome 才完成，等太短会在长任务上提前抛 Timeout 走"滞留 dispatched"，
+     * M0 无租约恢复）；未配置回落 15 分钟。硬编码 15m 曾与生产默认 30m 冲突（评审 minor）。
+     */
+    static Duration outcomeWait(io.legion.contracts.agent.ExecOptions opts) {
+        Duration total = opts.totalTimeout();
+        return total != null ? total.plus(Duration.ofSeconds(30)) : Duration.ofMinutes(15);
+    }
+
+    private void execute(io.legion.contracts.AgentTaskRow task) {        Session session;
         try {
             session = backend.execute(new ExecRequest(promptOf(task), execOptions));
         } catch (BackendException e) {
@@ -87,7 +96,8 @@ public class TaskWorkerLoop {
 
         try {
             forwardEvents(task.getId(), session);
-            Outcome outcome = session.outcome().get(15, TimeUnit.MINUTES);
+            Outcome outcome = session.outcome().get(
+                    outcomeWait(execOptions).toMillis(), TimeUnit.MILLISECONDS);
             if (outcome instanceof Outcome.Success success) {
                 // usage 先于终态，任何路径都不许跳过（计费不可漏）
                 reportUsage(task.getId(), success.usage(), success.sessionId());

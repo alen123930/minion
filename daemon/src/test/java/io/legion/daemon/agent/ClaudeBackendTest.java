@@ -264,4 +264,43 @@ class ClaudeBackendTest {
         Outcome o = session.outcome().get(20, TimeUnit.SECONDS);
         assertEquals(BackendFailureReason.TIMEOUT, ((Outcome.Failure) o).reason());
     }
+
+    @Test
+    void firstOutputTimeoutIsCancelledOnceFirstEventArrives() throws Exception {
+        // 评审 blocker 回归：首条事件必须在窗口内永久取消 firstOutput 看门狗。
+        // fixture 立即吐 system 事件、静默 3s（远超 500ms 窗口）、再吐 result 正常退出——
+        // 取消语义缺失时 500ms 处整树被杀、拿不到 result，终态 TIMEOUT
+        Path rest = dir.resolve("stream-fo-rest.txt");
+        Files.writeString(rest, "{\"type\":\"result\",\"subtype\":\"success\","
+                + "\"session_id\":\"s-fo\",\"result\":\"slow but alive\",\"is_error\":false}\n");
+        Path stdin = dir.resolve("stdin-fo.txt");
+        List<String> script = new ArrayList<>();
+        if (WINDOWS) {
+            script.add("@echo off");
+            script.add("@more > \"" + stdin + "\"");
+            script.add("@echo {\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"s-fo\"}");
+            script.add("@ping -n 4 127.0.0.1 >nul");
+            script.add("@type \"" + rest + "\"");
+        } else {
+            script.add("#!/bin/sh");
+            script.add("cat > '" + stdin.toString().replace("'", "'\"'\"'") + "'");
+            script.add("echo '{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"s-fo\"}'");
+            script.add("sleep 3");
+            script.add("cat '" + rest.toString().replace("'", "'\"'\"'") + "'");
+        }
+        Path scriptFile = dir.resolve(WINDOWS ? "delayed-result.cmd" : "delayed-result.sh");
+        Files.write(scriptFile, script);
+        if (!WINDOWS) {
+            scriptFile.toFile().setExecutable(true);
+        }
+        ClaudeBackend backend = new ClaudeBackend(
+                new ClaudeBackend.Config(scriptFile.toString(), Duration.ofMillis(300),
+                        StreamScanner.DEFAULT_MAX_LINE_BYTES));
+
+        Session session = backend.execute(request(new ExecOptions(null, null, null,
+                null, null, Duration.ofMillis(500), null)));
+        Outcome o = session.outcome().get(20, TimeUnit.SECONDS);
+        Outcome.Success success = assertInstanceOf(Outcome.Success.class, o);
+        assertEquals("slow but alive", success.output());
+    }
 }

@@ -77,6 +77,14 @@ class ClaudeStreamParserTest {
                 + "{\"type\":\"text\",\"text\":\"started\"},"
                 + "{\"type\":\"object\",\"status\":\"async_launched\"}]}]}}");
         assertTrue(nested.sawAsyncLaunch());
+
+        // 第三形态（参照 claude.go claudeToolResultHasAsyncLaunch 的 map 分支）：
+        // content 是对象、其 content 字段内嵌数组携带 status
+        ClaudeStreamParser objectNested = new ClaudeStreamParser(null);
+        objectNested.feed("{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":["
+                + "{\"type\":\"tool_result\",\"tool_use_id\":\"t1\","
+                + "\"content\":{\"content\":[{\"status\":\"async_launched\"}]}}]}}");
+        assertTrue(objectNested.sawAsyncLaunch());
     }
 
     @Test
