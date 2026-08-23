@@ -183,21 +183,31 @@ final class ClaudeStreamParser {
         return events;
     }
 
-    /** status=="async_launched" 出现在 content 对象顶层或其 content 数组子块里都算。 */
+    /**
+     * async_launched 识别（照抄参照 claude.go claudeToolResultHasAsyncLaunch 三形态）：
+     * (a) content 对象顶层 status；(b) content 是数组、任一子块带 status；
+     * (c) content 对象内嵌 content 数组携带 status。漏 (c) 会让后台任务
+     * 逃过禁令（评审 major：参照能拦、旧实现放行）。
+     */
     private boolean hasAsyncLaunchStatus(JsonNode raw) {
         if (raw == null) {
             return false;
         }
-        if (raw.isObject() && "async_launched".equals(raw.path("status").asText())) {
-            return true;
+        if (raw.isObject()) {
+            if ("async_launched".equals(raw.path("status").asText())) {
+                return true;
+            }
+            JsonNode nested = raw.get("content");
+            return nested != null && nested.isArray() && arrayHasAsyncLaunchStatus(nested);
         }
-        JsonArrayScan:
-        if (raw.isArray()) {
-            for (JsonNode item : raw) {
-                if (item.isObject()
-                        && "async_launched".equals(item.path("status").asText())) {
-                    return true;
-                }
+        return raw.isArray() && arrayHasAsyncLaunchStatus(raw);
+    }
+
+    private boolean arrayHasAsyncLaunchStatus(JsonNode array) {
+        for (JsonNode item : array) {
+            if (item.isObject()
+                    && "async_launched".equals(item.path("status").asText())) {
+                return true;
             }
         }
         return false;

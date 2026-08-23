@@ -117,10 +117,11 @@ public final class ClaudeBackend implements AgentBackend {
         }
 
         Run run = new Run(process, request.prompt(), opts);
+        // 先武装看门狗再启动泵：泵先跑会在首条事件早到时错过 firstOutput 取消窗口
+        run.armWatchdogs();
         PUMPS.submit(run::pumpStderr);
         PUMPS.submit(run::pumpStdout);
         PUMPS.submit(run::writeStdin);
-        run.armWatchdogs();
         return new Session(run.events, run.outcome);
     }
 
@@ -215,7 +216,7 @@ public final class ClaudeBackend implements AgentBackend {
         private final AtomicReference<Duration> firedTimeout = new AtomicReference<>();
         private final Object rescheduleLock = new Object();
         private ScheduledFuture<?> inactivityFuture;
-        private boolean firstOutputSeen;
+        private ScheduledFuture<?> firstOutputFuture;
 
         Run(Process process, String prompt, ExecOptions opts) {
             this.process = process;
@@ -224,17 +225,23 @@ public final class ClaudeBackend implements AgentBackend {
         }
 
         void armWatchdogs() {
-            // null = 不启用（MUL-3064：三个生命期各自独立，不许合并）
-            if (opts.totalTimeout() != null) {
-                watchdogs.schedule(() -> fireWatchdog(opts.totalTimeout()),
-                        opts.totalTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            }
-            if (opts.firstOutputTimeout() != null) {
-                watchdogs.schedule(() -> fireWatchdog(opts.firstOutputTimeout()),
-                        opts.firstOutputTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            }
-            if (opts.inactivityTimeout() != null) {
-                scheduleInactivity();
+            // null = 不启用（MUL-3064：三个生命期各自独立，不许合并）。
+            // 必须在泵启动前武装（execute 里的调用顺序）：首条事件可能先于
+            // 本方法到达，先泵后武装会让 activity() 看到未赋值的 firstOutputFuture
+            // 而错过取消窗口——生产默认 2m 后照样杀树（评审 blocker）
+            synchronized (rescheduleLock) {
+                if (opts.totalTimeout() != null) {
+                    watchdogs.schedule(() -> fireWatchdog(opts.totalTimeout()),
+                            opts.totalTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                }
+                if (opts.firstOutputTimeout() != null) {
+                    firstOutputFuture = watchdogs.schedule(
+                            () -> fireWatchdog(opts.firstOutputTimeout()),
+                            opts.firstOutputTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                }
+                if (opts.inactivityTimeout() != null) {
+                    scheduleInactivity();
+                }
             }
         }
 
@@ -244,11 +251,16 @@ public final class ClaudeBackend implements AgentBackend {
                     opts.inactivityTimeout().toMillis(), TimeUnit.MILLISECONDS);
         }
 
-        /** 每收到一条事件：firstOutput 永久取消，inactivity 重排。 */
+        /** 每收到一条事件：firstOutput 首条即永久取消，inactivity 每条重排。 */
         void activity() {
             synchronized (rescheduleLock) {
-                if (opts.firstOutputTimeout() != null && !firstOutputSeen) {
-                    firstOutputSeen = true;
+                if (firstOutputFuture != null) {
+                    // 设计 §6.2：首轮零产出只管"到第一条输出为止"。
+                    // 取消而非置标志——置标志的旧写法没人读，定时器照常
+                    // 到点杀树，任何超过 firstOutputTimeout 的正常长任务
+                    // 都会被误杀（评审 blocker 的根因）
+                    firstOutputFuture.cancel(false);
+                    firstOutputFuture = null;
                 }
                 if (opts.inactivityTimeout() != null) {
                     if (inactivityFuture != null) {
