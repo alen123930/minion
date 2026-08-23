@@ -94,8 +94,12 @@ public class TaskWorkerLoop {
             return;
         }
 
+        // 事件流经时保留的最新 usage 快照与 session id——结算异常
+        // early-return 路径的计费兜底（参照 daemon.go:5086 注释：
+        // agent 无论 complete/error/cancel 都已累计 token，漏报即漏计费）
+        StreamState state = new StreamState();
         try {
-            forwardEvents(task.getId(), session);
+            forwardEvents(task.getId(), session, state);
             Outcome outcome = session.outcome().get(
                     outcomeWait(execOptions).toMillis(), TimeUnit.MILLISECONDS);
             if (outcome instanceof Outcome.Success success) {
@@ -111,13 +115,17 @@ public class TaskWorkerLoop {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            // 会话已建立但结算异常/被中断：任务滞留 dispatched，M1 租约恢复兜底
+            // usage 先于 early-return：结算异常/被中断也要把已产生的 usage
+            // 落库（best-effort，任务仍为 dispatched，M1 租约恢复兜底）
+            if (!state.usage.isEmpty()) {
+                reportUsage(task.getId(), state.usage, state.sessionId);
+            }
             log.error("任务 {} 结算异常，滞留 dispatched，待 M1 租约恢复", task.getId(), e);
         }
     }
 
     /** 事件流转发到 server 的 messages 端点（server 再映射 SSE task:message）。 */
-    private void forwardEvents(java.util.UUID taskId, Session session) {
+    private void forwardEvents(java.util.UUID taskId, Session session, StreamState state) {
         try {
             while (true) {
                 AgentStreamEvent event = session.events().poll(15, TimeUnit.MINUTES);
@@ -126,6 +134,12 @@ public class TaskWorkerLoop {
                 }
                 if (event instanceof AgentStreamEvent.End) {
                     return;
+                }
+                if (event instanceof AgentStreamEvent.SystemInfo sys) {
+                    state.sessionId = sys.sessionId();
+                }
+                if (event instanceof AgentStreamEvent.Usage u) {
+                    state.usage = u.usage();
                 }
                 StreamEvent frame = frameOf(event);
                 if (frame != null) {
@@ -141,6 +155,12 @@ public class TaskWorkerLoop {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("interrupted while draining agent events", e);
         }
+    }
+
+    /** 事件流经时保留的计费兜底快照（early-return 路径上报用）。 */
+    static final class StreamState {
+        volatile Map<String, TokenUsage> usage = Map.of();
+        volatile String sessionId;
     }
 
     /** usage 汇总上报：跨模型求和（stream-json 家族是增量桶）。 */

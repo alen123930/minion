@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.legion.contracts.AgentTaskRow;
 import io.legion.contracts.ReportUsageRequest;
 import io.legion.contracts.StreamEvent;
+import io.legion.server.exception.BadRequestException;
 import io.legion.server.mapper.AgentTaskClaimMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,10 @@ public class AgentTaskClaimService {
 
     @Transactional
     public boolean complete(UUID id, JsonNode result) {
+        // fail-closed（设计 §3.5）：缺 result 不许补成功——在此前是 Map.of NPE 的 500
+        if (result == null || result.isNull()) {
+            throw new BadRequestException("result is required");
+        }
         UUID issueId = mapper.findIssueId(id);
         int applied = mapper.completeTask(id, result);
         if (applied > 0 && issueId != null) {
@@ -50,6 +55,10 @@ public class AgentTaskClaimService {
 
     @Transactional
     public boolean fail(UUID id, String error, String failureClass) {
+        // 失败归因必带稳定 reason code（AGENTS.md）；缺失在此前是 Map.of NPE 的 500
+        if (failureClass == null || failureClass.isBlank()) {
+            throw new BadRequestException("failure_class is required");
+        }
         UUID issueId = mapper.findIssueId(id);
         int applied = mapper.failTask(id, error, failureClass);
         if (applied > 0 && issueId != null) {
