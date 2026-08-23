@@ -1,4 +1,6 @@
 import { Link, createBrowserRouter, type RouteObject } from "react-router-dom";
+import { IssueDetailPage } from "./issue-detail-page";
+import { IssueListPage } from "./issue-list-page";
 
 function HomePage() {
   return (
@@ -12,17 +14,9 @@ function HomePage() {
   );
 }
 
-function IssuesListPage() {
-  return <main>IssueListPage（占位）</main>;
-}
-
-function IssueDetailPage() {
-  return <main>IssueDetailPage（占位）</main>;
-}
-
 export const routes: RouteObject[] = [
   { path: "/", element: <HomePage /> },
-  { path: "/issues", element: <IssuesListPage /> },
+  { path: "/issues", element: <IssueListPage /> },
   { path: "/issues/:issueId", element: <IssueDetailPage /> },
 ];
 
