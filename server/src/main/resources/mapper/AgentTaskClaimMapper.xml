@@ -58,4 +58,21 @@
             completed_at = now(), updated_at = now()
         WHERE id = #{id} AND status IN ('dispatched','running')
     </update>
+
+    <!-- messages/终态 SSE 转发路由：任务 → issue。 -->
+    <select id="findIssueId" resultType="java.util.UUID">
+        SELECT issue_id FROM agent_task_queue WHERE id = #{id}
+    </select>
+
+    <!-- usage 落库：仅 dispatched/running 生效，终态后到达的上报丢弃（幂等护栏）。
+         cost_usd_ticks 是 provider 申报的 1e-10 美元刻度原值，禁止折算。 -->
+    <update id="applyUsage">
+        UPDATE agent_task_queue
+        SET session_id = COALESCE(#{sessionId}, session_id),
+            input_tokens = #{inputTokens},
+            output_tokens = #{outputTokens},
+            cost_usd_ticks = #{costUsdTicks},
+            updated_at = now()
+        WHERE id = #{id} AND status IN ('dispatched','running')
+    </update>
 </mapper>

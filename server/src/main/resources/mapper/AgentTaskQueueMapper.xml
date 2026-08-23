@@ -7,11 +7,13 @@
     </sql>
 
     <!-- M0 入队：ON CONFLICT 推断命中 partial unique index
-         idx_one_pending_task_per_issue_agent（WHERE status IN ('queued','dispatched')），
-         已存在 pending 时静默合并为 0 行受影响（coalesce，设计 §4.3）。 -->
+          idx_one_pending_task_per_issue_agent（WHERE status IN ('queued','dispatched')），
+          已存在 pending 时静默合并为 0 行受影响（coalesce，设计 §4.3）。
+          context 携带入队时刻的 prompt 快照（title/description，TaskEnqueueService 组装）。 -->
     <insert id="enqueue" parameterType="io.legion.server.domain.AgentTaskQueueRow">
-        INSERT INTO agent_task_queue (id, workspace_id, issue_id, agent_id, status, priority, created_at)
-        VALUES (#{id}, #{workspaceId}, #{issueId}, #{agentId}, #{status}, #{priority}, #{createdAt})
+        INSERT INTO agent_task_queue (id, workspace_id, issue_id, agent_id, status, priority, context, created_at)
+        VALUES (#{id}, #{workspaceId}, #{issueId}, #{agentId}, #{status}, #{priority},
+                #{context}::jsonb, #{createdAt})
         ON CONFLICT (issue_id, agent_id) WHERE status IN ('queued', 'dispatched') DO NOTHING
     </insert>
 
