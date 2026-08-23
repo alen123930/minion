@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { issueDetailQueryOptions, issueKeys, issueListQueryOptions } from "./queries";
-import { applyIssueStreamEvent } from "./stream-updaters";
+import { applyIssueStreamEvent, appendStreamStatus } from "./stream-updaters";
 import type { Comment, Issue, IssueDetail } from "./schemas";
 
 const WS = "00000000-0000-0000-0000-000000000001";
@@ -189,5 +189,39 @@ describe("applyIssueStreamEvent: 无缓存时", () => {
     expect(
       qc.getQueryData<unknown[]>(issueKeys.transcript(WS, ISSUE_ID)),
     ).toHaveLength(1);
+  });
+});
+
+describe("appendStreamStatus: EventSource 错误留痕", () => {
+  it("closed：致命错误（如 404）记录不再重连", () => {
+    const qc = new QueryClient();
+    appendStreamStatus(qc, WS, ISSUE_ID, "closed");
+    const transcript = qc.getQueryData<{ seq: number; type: string; text: string }[]>(
+      issueKeys.transcript(WS, ISSUE_ID),
+    );
+    expect(transcript).toHaveLength(1);
+    expect(transcript?.[0].type).toBe("stream:error");
+    expect(transcript?.[0].text).toContain("不再重连");
+  });
+
+  it("reconnecting：瞬断记录浏览器自动重连中", () => {
+    const qc = new QueryClient();
+    appendStreamStatus(qc, WS, ISSUE_ID, "reconnecting");
+    const transcript = qc.getQueryData<{ type: string; text: string }[]>(
+      issueKeys.transcript(WS, ISSUE_ID),
+    );
+    expect(transcript).toHaveLength(1);
+    expect(transcript?.[0].text).toContain("重连");
+  });
+
+  it("seq 顺延既有 transcript", () => {
+    const qc = new QueryClient();
+    applyIssueStreamEvent(qc, WS, ISSUE_ID, { type: "connected", payload: { issue_id: ISSUE_ID } });
+    appendStreamStatus(qc, WS, ISSUE_ID, "reconnecting");
+    const transcript = qc.getQueryData<{ seq: number }[]>(
+      issueKeys.transcript(WS, ISSUE_ID),
+    );
+    expect(transcript).toHaveLength(2);
+    expect(transcript?.[1].seq).toBe(2);
   });
 });

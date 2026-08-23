@@ -24,7 +24,7 @@ function CommentComposer({ issueId }: { issueId: string }) {
       className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        create.mutate({ body: body.trim() });
+        create.mutate({ body: body.trim() }, { onSuccess: () => setBody("") });
       }}
     >
       <label className="flex flex-col gap-1 text-sm">

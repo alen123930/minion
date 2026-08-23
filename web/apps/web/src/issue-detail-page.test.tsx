@@ -126,6 +126,10 @@ describe("IssueDetailPage", () => {
         url === `/api/issues/${ISSUE_ID}/comments` && init?.method === "POST",
     );
     expect(JSON.parse(String(postCall?.[1]?.body))).toEqual({ body: "已定位" });
+    // 提交成功后清空输入框，防同文重复提交
+    await waitFor(() => {
+      expect((screen.getByLabelText("评论") as HTMLTextAreaElement).value).toBe("");
+    });
   });
 
   it("SSE 实时区：事件上屏且绝不触发 refetch", async () => {

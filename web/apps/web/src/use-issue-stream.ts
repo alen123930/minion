@@ -1,5 +1,6 @@
 import {
   DEFAULT_WORKSPACE_ID,
+  appendStreamStatus,
   applyIssueStreamEvent,
   parseStreamEvent,
 } from "@legion/core/issues";
@@ -22,6 +23,16 @@ export function useIssueStream(issueId: string | undefined): void {
       if (event) {
         applyIssueStreamEvent(qc, DEFAULT_WORKSPACE_ID, issueId, event);
       }
+    };
+    source.onerror = () => {
+      // 404 等非 200 响应：连接永久失败（readyState=CLOSED），浏览器不重连，只留痕；
+      // 网络瞬断：readyState=CONNECTING，浏览器自动重连，无需人工 close。
+      appendStreamStatus(
+        qc,
+        DEFAULT_WORKSPACE_ID,
+        issueId,
+        source.readyState === EventSource.CLOSED ? "closed" : "reconnecting",
+      );
     };
     return () => source.close();
   }, [qc, issueId]);

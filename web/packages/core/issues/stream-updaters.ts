@@ -111,6 +111,28 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/**
+ * EventSource onerror 留痕（本地状态，非服务端事件）。
+ * WHATWG 语义：非 200 响应（如 issue 不存在的 404）→ 连接永久失败，
+ * readyState=CLOSED，浏览器不再重连；网络瞬断/服务重启 → readyState=CONNECTING，
+ * 浏览器按默认间隔自动重连，不在此人工重连。
+ */
+export function appendStreamStatus(
+  qc: QueryClient,
+  wsId: string,
+  issueId: string,
+  status: "reconnecting" | "closed",
+): void {
+  appendTranscript(qc, wsId, issueId, {
+    at: nowIso(),
+    type: "stream:error",
+    text:
+      status === "closed"
+        ? "连接已关闭（非 200 响应或致命错误），浏览器不再重连"
+        : "连接断开，浏览器自动重连中",
+  });
+}
+
 function patchIssueInDetail(
   qc: QueryClient,
   wsId: string,

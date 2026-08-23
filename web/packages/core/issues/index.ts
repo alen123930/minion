@@ -29,7 +29,7 @@ export {
   issueListQueryOptions,
 } from "./queries";
 export { createCommentMutationOptions, createIssueMutationOptions } from "./mutations";
-export { applyIssueStreamEvent } from "./stream-updaters";
+export { applyIssueStreamEvent, appendStreamStatus } from "./stream-updaters";
 export type { TranscriptEntry } from "./stream-updaters";
 export { sortCommentsAsc } from "./timeline-sort";
 export { useIssueListViewStore } from "./store";

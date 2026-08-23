@@ -13,8 +13,14 @@ const ISSUE_ID = "11111111-1111-1111-1111-111111111111";
 
 class FakeEventSource {
   static instances: FakeEventSource[] = [];
+  // WHATWG EventSource 常量镜像：0 CONNECTING / 1 OPEN / 2 CLOSED
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSED = 2;
   url: string;
   onmessage: ((ev: { data: string }) => void) | null = null;
+  onerror: ((ev: unknown) => void) | null = null;
+  readyState = FakeEventSource.OPEN;
   closed = false;
 
   constructor(url: string) {
@@ -28,6 +34,12 @@ class FakeEventSource {
 
   deliver(data: string) {
     this.onmessage?.({ data });
+  }
+
+  /** 以指定 readyState 触发 error 事件，模拟断线/致命错误。 */
+  fail(readyState: number) {
+    this.readyState = readyState;
+    this.onerror?.({});
   }
 }
 
@@ -120,5 +132,30 @@ describe("useIssueStream", () => {
     expect(
       qc.getQueryData<unknown[]>(issueKeys.transcript(DEFAULT_WORKSPACE_ID, ISSUE_ID)),
     ).toBeUndefined();
+  });
+
+  it("致命错误（readyState=CLOSED）留痕且不再重连", () => {
+    const qc = new QueryClient();
+    renderHook(() => useIssueStream(ISSUE_ID), { wrapper: makeWrapper(qc) });
+    const source = FakeEventSource.instances[0];
+    source.fail(FakeEventSource.CLOSED);
+    const transcript = qc.getQueryData<
+      { type: string; text: string }[]
+    >(issueKeys.transcript(DEFAULT_WORKSPACE_ID, ISSUE_ID));
+    expect(transcript).toHaveLength(1);
+    expect(transcript?.[0].type).toBe("stream:error");
+    expect(transcript?.[0].text).toContain("不再重连");
+  });
+
+  it("瞬断（readyState=CONNECTING）留痕重连中", () => {
+    const qc = new QueryClient();
+    renderHook(() => useIssueStream(ISSUE_ID), { wrapper: makeWrapper(qc) });
+    const source = FakeEventSource.instances[0];
+    source.fail(FakeEventSource.CONNECTING);
+    const transcript = qc.getQueryData<
+      { type: string; text: string }[]
+    >(issueKeys.transcript(DEFAULT_WORKSPACE_ID, ISSUE_ID));
+    expect(transcript).toHaveLength(1);
+    expect(transcript?.[0].text).toContain("重连");
   });
 });
