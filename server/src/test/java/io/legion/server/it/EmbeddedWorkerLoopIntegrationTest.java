@@ -95,4 +95,55 @@ class EmbeddedWorkerLoopIntegrationTest extends TaskQueueIntegrationTestBase {
                 "SELECT error FROM agent_task_queue WHERE id = ?",
                 String.class, taskId)).contains("without terminal result");
     }
+
+    /**
+     * usage 先于 early-return（NIMI-14，参照 daemon.go:5086）：结算异常
+     * （outcome 异常完成）时已产生的 usage 必须落库，任务滞留 dispatched，
+     * 不许 complete/fail 冒充终态。
+     */
+    @Test
+    void settlementExceptionStillPersistsProducedUsage() {
+        Seed s = seed();
+        UUID taskId = enqueue(s, "queued");
+
+        io.legion.contracts.agent.TokenUsage produced =
+                new io.legion.contracts.agent.TokenUsage(31, 13, 0, 0, 777_000_000L);
+        loop(() -> new io.legion.contracts.agent.AgentBackend() {
+            @Override
+            public String provider() {
+                return "exploding";
+            }
+
+            @Override
+            public io.legion.contracts.agent.Session execute(
+                    io.legion.contracts.agent.ExecRequest request) {
+                var events = new java.util.concurrent.LinkedBlockingQueue<io.legion.contracts.agent.AgentStreamEvent>();
+                var outcome = new java.util.concurrent.CompletableFuture<io.legion.contracts.agent.Outcome>();
+                Thread runner = new Thread(() -> {
+                    events.offer(new io.legion.contracts.agent.AgentStreamEvent.SystemInfo("err-session"));
+                    events.offer(new io.legion.contracts.agent.AgentStreamEvent.Usage(
+                            java.util.Map.of("boom-model", produced)));
+                    events.offer(new io.legion.contracts.agent.AgentStreamEvent.End());
+                    outcome.completeExceptionally(new IllegalStateException("pump thread died"));
+                }, "legion-exploding-agent");
+                runner.setDaemon(true);
+                runner.start();
+                return new io.legion.contracts.agent.Session(events, outcome);
+            }
+        }).poll();
+
+        assertThat(statusOf(taskId)).isEqualTo("dispatched");
+        assertThat(jdbc.queryForObject(
+                "SELECT input_tokens FROM agent_task_queue WHERE id = ?",
+                Integer.class, taskId)).isEqualTo(31);
+        assertThat(jdbc.queryForObject(
+                "SELECT output_tokens FROM agent_task_queue WHERE id = ?",
+                Integer.class, taskId)).isEqualTo(13);
+        assertThat(jdbc.queryForObject(
+                "SELECT cost_usd_ticks FROM agent_task_queue WHERE id = ?",
+                Long.class, taskId)).isEqualTo(777_000_000L);
+        assertThat(jdbc.queryForObject(
+                "SELECT session_id FROM agent_task_queue WHERE id = ?",
+                String.class, taskId)).isEqualTo("err-session");
+    }
 }

@@ -181,4 +181,38 @@ class DaemonStreamIntegrationTest extends TaskQueueIntegrationTestBase {
             conn.disconnect();
         }
     }
+
+    /** 幂等重复回写不产生副作用：重复 complete（applied=false）不得重发 SSE 帧。 */
+    @Test
+    void repeatedCompleteDoesNotRepublishTaskCompletedFrame() throws Exception {
+        Seed s = seed();
+        UUID taskId = enqueue(s, "queued");
+        rest().post().uri("/api/daemon/tasks/claim").retrieve().body(String.class);
+
+        HttpURLConnection conn = openStream(s.issueId());
+        try {
+            assertThat(readDataLine(conn, Duration.ofSeconds(5))).contains("connected");
+
+            rest().post().uri("/api/daemon/tasks/{id}/complete", taskId)
+                    .body(new io.legion.contracts.CompleteTaskRequest(
+                            json.createObjectNode().put("output", "done")))
+                    .retrieve().body(String.class);
+            String first = readDataLine(conn, Duration.ofSeconds(5));
+            assertThat(first).isNotNull();
+            assertThat(json.readTree(first).path("type").asText()).isEqualTo("task:completed");
+
+            JsonNode again = json.readTree(rest().post()
+                    .uri("/api/daemon/tasks/{id}/complete", taskId)
+                    .body(new io.legion.contracts.CompleteTaskRequest(
+                            json.createObjectNode().put("output", "done")))
+                    .retrieve().body(String.class));
+            assertThat(again.path("applied").asBoolean()).isFalse();
+
+            assertThat(readDataLine(conn, Duration.ofSeconds(2)))
+                    .as("重复回写不得重发 task:completed 帧")
+                    .isNull();
+        } finally {
+            conn.disconnect();
+        }
+    }
 }

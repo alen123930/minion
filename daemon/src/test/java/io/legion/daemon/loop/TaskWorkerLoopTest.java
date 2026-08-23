@@ -3,8 +3,10 @@ package io.legion.daemon.loop;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
+import io.legion.contracts.agent.AgentStreamEvent;
 import io.legion.contracts.agent.BackendException;
 import io.legion.contracts.agent.BackendFailureReason;
+import io.legion.contracts.agent.Outcome;
 import io.legion.daemon.agent.FakeBackend;
 import io.legion.daemon.client.DaemonClient;
 import org.junit.jupiter.api.AfterEach;
@@ -137,6 +139,54 @@ class TaskWorkerLoopTest {
         String failBody = bodies.get(bodies.size() - 1);
         assertTrue(failBody.contains("no_result"), failBody);
         assertTrue(failBody.contains("without terminal result"), failBody);
+    }
+
+    /**
+     * usage 先于 early-return（设计 §5.3 / 参照 daemon.go:5086）：
+     * 结算异常路径（outcome 异常完成——泵线程病态死亡等）已产生的 usage
+     * 必须照报，计费不可漏；且不许 complete/fail 冒充终态（任务滞留 dispatched）。
+     */
+    @Test
+    void settlementExceptionStillReportsProducedUsage() throws Exception {
+        queueTaskWithPrompt("partial work");
+        io.legion.contracts.agent.TokenUsage produced =
+                new io.legion.contracts.agent.TokenUsage(31, 13, 0, 0, 777_000_000L);
+        loop = new TaskWorkerLoop(new DaemonClient(
+                        URI.create("http://127.0.0.1:" + server.getAddress().getPort())),
+                new io.legion.contracts.agent.AgentBackend() {
+                    @Override
+                    public String provider() {
+                        return "exploding";
+                    }
+
+                    @Override
+                    public io.legion.contracts.agent.Session execute(
+                            io.legion.contracts.agent.ExecRequest request) {
+                        var events = new java.util.concurrent.LinkedBlockingQueue<AgentStreamEvent>();
+                        var outcome = new java.util.concurrent.CompletableFuture<Outcome>();
+                        Thread runner = new Thread(() -> {
+                            events.offer(new AgentStreamEvent.SystemInfo("err-session"));
+                            events.offer(new AgentStreamEvent.Usage(
+                                    java.util.Map.of("boom-model", produced)));
+                            events.offer(new AgentStreamEvent.End());
+                            outcome.completeExceptionally(
+                                    new IllegalStateException("pump thread died"));
+                        }, "legion-exploding-agent");
+                        runner.setDaemon(true);
+                        runner.start();
+                        return new io.legion.contracts.agent.Session(events, outcome);
+                    }
+                },
+                Duration.ofMillis(10));
+
+        loop.poll();
+
+        assertEquals(List.of("claim", "messages", "messages", "usage"), requestLog);
+        JsonNode usage = json.readTree(bodies.get(bodies.size() - 1));
+        assertEquals("err-session", usage.path("session_id").asText());
+        assertEquals(31, usage.path("input_tokens").asLong());
+        assertEquals(13, usage.path("output_tokens").asLong());
+        assertEquals(777_000_000L, usage.path("cost_usd_ticks").asLong());
     }
 
     @Test

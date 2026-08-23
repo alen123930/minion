@@ -173,4 +173,42 @@ class DaemonTaskApiIntegrationTest extends TaskQueueIntegrationTestBase {
                 .toBodilessEntity().getStatusCode().value();
         assertThat(status).isEqualTo(400);
     }
+
+    /** fail-closed（设计 §3.5）：缺 result 不许补成功——显式 400，非 500。 */
+    @Test
+    void completeWithoutResultIsRejected400() throws Exception {
+        Seed s = seed();
+        UUID taskId = enqueue(s, "queued");
+        rest().post().uri("/api/daemon/tasks/claim").retrieve().body(ClaimTaskResponse.class);
+
+        String body = rest().post()
+                .uri("/api/daemon/tasks/{id}/complete", taskId)
+                .body(new CompleteTaskRequest(null))
+                .exchange((request, response) -> {
+                    assertThat(response.getStatusCode().value()).isEqualTo(400);
+                    return new String(response.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                });
+
+        assertThat(body).contains("result is required");
+        assertThat(statusOf(taskId)).isEqualTo("dispatched");
+    }
+
+    /** 稳定失败归因是协议必填字段（AGENTS.md）：缺失显式 400，非 500。 */
+    @Test
+    void failWithoutFailureClassIsRejected400() throws Exception {
+        Seed s = seed();
+        UUID taskId = enqueue(s, "queued");
+        rest().post().uri("/api/daemon/tasks/claim").retrieve().body(ClaimTaskResponse.class);
+
+        String body = rest().post()
+                .uri("/api/daemon/tasks/{id}/fail", taskId)
+                .body(new FailTaskRequest("boom", null))
+                .exchange((request, response) -> {
+                    assertThat(response.getStatusCode().value()).isEqualTo(400);
+                    return new String(response.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                });
+
+        assertThat(body).contains("failure_class is required");
+        assertThat(statusOf(taskId)).isEqualTo("dispatched");
+    }
 }
