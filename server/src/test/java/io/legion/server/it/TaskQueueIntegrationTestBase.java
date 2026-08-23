@@ -22,6 +22,11 @@ public abstract class TaskQueueIntegrationTestBase extends AbstractIntegrationTe
     @BeforeEach
     void cleanDatabase() {
         jdbc.execute("TRUNCATE agent_task_queue, comment, issue, agent, member, workspace, agent_runtime, \"user\" CASCADE");
+        // TRUNCATE 会把默认 workspace 一起清掉，而 API 入队路径（M0 单 workspace
+        // 硬编码）认领/落库都挂在它上面——清完补种（DefaultWorkspaceInitializer 只在启动时跑一次）
+        jdbc.update(
+                "INSERT INTO workspace (id, name, slug) VALUES (?, 'legion', 'legion')",
+                io.legion.server.WorkspaceDefaults.DEFAULT_WORKSPACE_ID);
     }
 
     protected String baseUrl() {

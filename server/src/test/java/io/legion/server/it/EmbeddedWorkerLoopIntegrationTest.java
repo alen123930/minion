@@ -1,5 +1,7 @@
 package io.legion.server.it;
 
+import io.legion.contracts.agent.BackendFailureReason;
+import io.legion.daemon.agent.FakeBackend;
 import io.legion.daemon.client.DaemonClient;
 import io.legion.daemon.loop.TaskWorkerLoop;
 import org.junit.jupiter.api.Test;
@@ -14,8 +16,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * worker（daemon 模块）↔ server（HTTP）全链路：认领 → 状态流转桩 → 终态落库。
- * 手动驱动一次 poll，确定性验证 daemon 对 server 的调用走 localhost HTTP 且状态机完整。
+ * worker（daemon 模块）↔ server（HTTP）全链路（M0-7 起真实调用 backend）：
+ * 认领 → FakeBackend 执行 → messages 转发 → usage 先报 → 终态落库。
+ * 手动驱动一次 poll，确定性验证 daemon 对 server 的调用走 localhost HTTP。
  */
 class EmbeddedWorkerLoopIntegrationTest extends TaskQueueIntegrationTestBase {
 
@@ -23,22 +26,73 @@ class EmbeddedWorkerLoopIntegrationTest extends TaskQueueIntegrationTestBase {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = newPostgres();
 
-    @Test
-    void workerPollClaimsThenCompletesStub() {
-        Seed s = seed();
-        UUID taskId = enqueue(s, "queued");
+    private TaskWorkerLoop loop(AgentBackendSupplier backend) {
+        return new TaskWorkerLoop(
+                new DaemonClient(URI.create(baseUrl())), backend.get(), Duration.ofMillis(10));
+    }
 
-        TaskWorkerLoop loop = new TaskWorkerLoop(
-                new DaemonClient(URI.create(baseUrl())), Duration.ofMillis(10));
-        loop.poll();
+    @FunctionalInterface
+    private interface AgentBackendSupplier {
+        io.legion.contracts.agent.AgentBackend get();
+    }
+
+    @Test
+    void workerRunsFakeBackendToCompletionWithUsage() {
+        // API 入队（默认 workspace）：prompt 快照随任务携带，FakeBackend echo 回来
+        UUID agentId = insertAgent("worker-e2e-agent");
+        UUID issueId = insertIssue("worker e2e issue");
+        jdbc.update("UPDATE issue SET description = ? WHERE id = ?",
+                "describe the plan", issueId);
+        rest.postForEntity("/api/agents/{id}/tasks",
+                java.util.Map.of("issue_id", issueId.toString()), String.class, agentId);
+        UUID taskId = jdbc.queryForObject(
+                "SELECT id FROM agent_task_queue WHERE issue_id = ? AND agent_id = ?",
+                java.util.UUID.class, issueId, agentId);
+
+        loop(FakeBackend::new).poll();
 
         assertThat(countByStatus("queued")).isZero();
         assertThat(countByStatus("completed")).isEqualTo(1);
         String result = jdbc.queryForObject(
                 "SELECT result::text FROM agent_task_queue WHERE id = ?", String.class, taskId);
-        assertThat(result).contains("m0-worker");
+        assertThat(result).contains("echo:");
+        assertThat(result).contains("describe the plan");
+        // PG jsonb 文本化带空格（"provider": "fake"），走解析断言
+        assertThat(jdbc.queryForObject(
+                "SELECT result->>'provider' FROM agent_task_queue WHERE id = ?",
+                String.class, taskId)).isEqualTo("fake");
+        // usage 落库：FakeBackend 固定用量 17/9，cost ticks 原样透传不折算
+        assertThat(jdbc.queryForObject(
+                "SELECT input_tokens FROM agent_task_queue WHERE id = ?",
+                Integer.class, taskId)).isEqualTo(17);
+        assertThat(jdbc.queryForObject(
+                "SELECT output_tokens FROM agent_task_queue WHERE id = ?",
+                Integer.class, taskId)).isEqualTo(9);
+        assertThat(jdbc.queryForObject(
+                "SELECT cost_usd_ticks FROM agent_task_queue WHERE id = ?",
+                Long.class, taskId)).isEqualTo(1_234_500_000L);
+        assertThat(jdbc.queryForObject(
+                "SELECT session_id FROM agent_task_queue WHERE id = ?",
+                String.class, taskId)).isEqualTo("fake-session");
         assertThat(jdbc.queryForObject(
                 "SELECT dispatched_at IS NOT NULL FROM agent_task_queue WHERE id = ?",
                 Boolean.class, taskId)).isTrue();
+    }
+
+    @Test
+    void workerFailingBackendMarksTaskFailedWithStableClass() {
+        Seed s = seed();
+        UUID taskId = enqueue(s, "queued");
+
+        loop(() -> FakeBackend.failing(
+                BackendFailureReason.NO_RESULT, "stream ended without terminal result")).poll();
+
+        assertThat(statusOf(taskId)).isEqualTo("failed");
+        assertThat(jdbc.queryForObject(
+                "SELECT failure_class FROM agent_task_queue WHERE id = ?",
+                String.class, taskId)).isEqualTo("no_result");
+        assertThat(jdbc.queryForObject(
+                "SELECT error FROM agent_task_queue WHERE id = ?",
+                String.class, taskId)).contains("without terminal result");
     }
 }

@@ -20,7 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @TestPropertySource(properties = {
         "legion.daemon.embedded.enabled=true",
-        "legion.daemon.embedded.poll-interval=100ms"
+        "legion.daemon.embedded.poll-interval=100ms",
+        // 测试环境无 claude CLI，真实 backend 会以 executable_not_found 失败；
+        // 默认测试禁止执行真实 agent CLI（设计 §6.4 隔离纪律），内嵌链路用 fake
+        "legion.daemon.agent.backend=fake"
 })
 class EmbeddedDaemonStarterIntegrationTest extends TaskQueueIntegrationTestBase {
 
@@ -43,6 +46,10 @@ class EmbeddedDaemonStarterIntegrationTest extends TaskQueueIntegrationTestBase 
         assertThat(statusOf(taskId)).isEqualTo("completed");
         String result = jdbc.queryForObject(
                 "SELECT result::text FROM agent_task_queue WHERE id = ?", String.class, taskId);
-        assertThat(result).contains("m0-worker");
+        // FakeBackend echo：SQL 直种的行没有 prompt 快照，走 worker 的兜底 prompt
+        assertThat(result).contains("echo:");
+        assertThat(jdbc.queryForObject(
+                "SELECT input_tokens FROM agent_task_queue WHERE id = ?",
+                Integer.class, taskId)).isEqualTo(17);
     }
 }

@@ -11,6 +11,9 @@ import io.legion.contracts.CompleteTaskRequest;
 import io.legion.contracts.CompleteTaskResponse;
 import io.legion.contracts.FailTaskRequest;
 import io.legion.contracts.FailTaskResponse;
+import io.legion.contracts.ReportUsageRequest;
+import io.legion.contracts.StreamEvent;
+import io.legion.contracts.TaskMessagesRequest;
 
 import java.io.IOException;
 import java.net.URI;
@@ -18,6 +21,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -76,6 +80,25 @@ public class DaemonClient {
             return json.readValue(resp.body(), FailTaskResponse.class).applied();
         } catch (IOException e) {
             throw new DaemonClientException("fail 响应解析失败", e);
+        }
+    }
+
+    /** 流式事件批次转发（设计 §4.2 messages 端点；server 映射成 SSE task:message）。 */
+    public void messages(UUID taskId, List<StreamEvent> events) {
+        post("/api/daemon/tasks/" + taskId + "/messages",
+                writeBody(new TaskMessagesRequest(events)));
+    }
+
+    /** usage 上报——先于一切 early return 的计费路径（设计 §4.2/§5.3）。 */
+    public void reportUsage(UUID taskId, ReportUsageRequest request) {
+        post("/api/daemon/tasks/" + taskId + "/usage", writeBody(request));
+    }
+
+    private String writeBody(Object payload) {
+        try {
+            return json.writeValueAsString(payload);
+        } catch (IOException e) {
+            throw new DaemonClientException("请求序列化失败: " + payload.getClass().getSimpleName(), e);
         }
     }
 

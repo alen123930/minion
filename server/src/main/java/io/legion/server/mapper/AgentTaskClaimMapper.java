@@ -22,4 +22,14 @@ public interface AgentTaskClaimMapper {
 
     /** 终态 failed；0 行 = 已被终态化。 */
     int failTask(@Param("id") UUID id, @Param("error") String error, @Param("failureClass") String failureClass);
+
+    /** 任务归属的 issue（messages/终态 SSE 转发路由用）；未知任务返回 null。 */
+    UUID findIssueId(@Param("id") UUID id);
+
+    /** usage 落库（仅 dispatched/running；终态后 0 行 = 丢弃）。 */
+    int applyUsage(@Param("id") UUID id,
+                   @Param("sessionId") String sessionId,
+                   @Param("inputTokens") long inputTokens,
+                   @Param("outputTokens") long outputTokens,
+                   @Param("costUsdTicks") long costUsdTicks);
 }
