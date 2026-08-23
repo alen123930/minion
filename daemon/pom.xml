@@ -51,6 +51,15 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <!-- NIMI-18：daemon 被 server 以库依赖内嵌（设计 §二），但 repackage 默认用 fat-jar
+                     替换主构件——reactor 内 server 解析到的就是 BOOT-INF/classes 嵌套布局的 fat-jar，
+                     javac 找不到 io.legion.daemon.*，`mvn -pl server -am package` 必挂（fat-jar 根路径
+                     零个 io/legion 条目已实测）。classifier=exec 让可执行 jar 改挂 -exec 附构件，
+                     薄 jar 回归主构件：server 依赖解析与独立 fat-jar 两全（Spring Boot 插件文档
+                     "repackaged archive as a dependency" 的标准处置）。 -->
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
         </plugins>
     </build>
